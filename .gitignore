@@ -1,0 +1,2 @@
+# Generated exports contain private network and client information.
+unifi-export-*.json
