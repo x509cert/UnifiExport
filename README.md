@@ -9,6 +9,15 @@ Export UniFi Network configuration and Wi-Fi radio statistics to a single JSON f
 - A UniFi Network API key with permission to read the requested data.
 - A console that supports the Network integration API and the legacy Network API routes used by the script.
 
+## Get an API key
+
+1. Open your console's local HTTPS address and sign in with an administrator account.
+2. Open **UniFi Network > Settings > Integrations** (some versions show **Integrations** directly in Network). Use the local Network API section, not the separate Site Manager API.
+3. Choose **Create API Key** (the label can vary by version), give it a name such as `UnifiExport`, and select read-only access if your version offers permissions.
+4. Copy the generated key immediately and keep it in a password manager; you may not be able to view it again. Paste it into the script's startup prompt, not into the source file.
+
+If Integrations or key creation is unavailable, check your administrator permissions and your console's Network version. The version-specific documentation is available from the Integrations page. See Ubiquiti's [official API guide](https://help.ui.com/hc/en-us/articles/30076656117655-Getting-Started-with-the-Official-UniFi-API) for the distinction between local application APIs and Site Manager.
+
 ## Usage
 
 1. Clone the repository:
@@ -18,20 +27,27 @@ Export UniFi Network configuration and Wi-Fi radio statistics to a single JSON f
    Set-Location .\UnifiExport
    ```
 
-2. In `Export-Unifi.ps1`, replace the placeholders:
+2. In `Export-Unifi.ps1`, replace the console URL placeholder:
 
    ```powershell
-   $key    = '<key>'
    $host_  = 'https://192.168.1.xxx'
    ```
-
-   Use your API key and console URL. Keep the key private: do not commit the edited script or share it with an LLM. Restore the placeholder before committing changes.
 
 3. Run the script from PowerShell 7:
 
    ```powershell
    pwsh -File .\Export-Unifi.ps1
    ```
+
+   Enter your API key at the hidden startup prompt. On Windows, the script saves it to `%LOCALAPPDATA%\UnifiExport\api-key.xml`, encrypted using Windows Data Protection for your Windows account on this computer. Later runs load the saved key without prompting. Do not copy this file into the repository or share it with an LLM.
+
+   To replace or revoke a saved key, revoke the old key in UniFi as needed, delete the local file, and run the script again:
+
+   ```powershell
+   Remove-Item -LiteralPath "$env:LOCALAPPDATA\UnifiExport\api-key.xml"
+   ```
+
+   You can also supply a key through the `UNIFI_API_KEY` environment variable. A nonblank environment value takes precedence over the saved key, skips the prompt, and is not written to the cache. Avoid putting the key in command history or committed files. On non-Windows systems, prompted keys are not saved; supply the environment variable through your secret-management tooling to avoid repeated prompts.
 
    The script writes `unifi-export-yyyyMMdd-HHmm.json` in the current directory. Generated exports matching this naming pattern are excluded by `.gitignore`.
 

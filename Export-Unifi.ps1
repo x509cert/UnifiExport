@@ -1,7 +1,32 @@
 #Requires -Version 7
 # Exports UniFi Network config + RF stats to a single JSON file for WiFi optimization review.
 
-$key  = '<key>'
+$key = $env:UNIFI_API_KEY
+if ([string]::IsNullOrWhiteSpace($key)) {
+    $keyPath = if ($IsWindows) { Join-Path $env:LOCALAPPDATA 'UnifiExport\api-key.xml' }
+    if ($keyPath -and (Test-Path -LiteralPath $keyPath)) {
+        $savedKey = Import-Clixml -LiteralPath $keyPath -ErrorAction Stop
+        if ($savedKey -isnot [System.Security.SecureString]) {
+            throw "Invalid saved API key. Delete '$keyPath' and run the script again."
+        }
+    } else {
+        do {
+            $savedKey = Read-Host 'UniFi Network API key' -AsSecureString
+        } while ($savedKey.Length -eq 0)
+
+        if ($keyPath) {
+            New-Item -ItemType Directory -Path (Split-Path $keyPath) -Force -ErrorAction Stop | Out-Null
+            $savedKey | Export-Clixml -LiteralPath $keyPath -ErrorAction Stop
+        } else {
+            Write-Warning 'The key is not saved on this platform. Set UNIFI_API_KEY to reuse a key without prompting.'
+        }
+    }
+    $key = ConvertFrom-SecureString -SecureString $savedKey -AsPlainText -ErrorAction Stop
+}
+if ([string]::IsNullOrWhiteSpace($key)) {
+    throw 'The API key must not be blank.'
+}
+
 $host_  = 'https://192.168.1.xxx'
 $base   = "$host_/proxy/network/integration/v1"
 $legacy = "$host_/proxy/network/api/s/default"
